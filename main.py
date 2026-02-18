@@ -10,18 +10,22 @@ app = Client("my_terabox_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_t
 
 @app.on_message(filters.command("start"))
 async def start(client, message):
-    await message.reply_text("Bot is Online! Send me any Terabox link.")
+    await message.reply_text("I am Online! Send me a Terabox link.")
 
 @app.on_message(filters.text)
 async def download_handler(client, message):
     url = message.text
     if "terabox" in url or "terashare" in url:
-        status = await message.reply_text("Fetching video... Please wait ⏳")
+        status = await message.reply_text("Trying to fetch video... ⏳")
         try:
-            # New and more stable API
+            # alternative stable API
             api_url = f"https://terabox-dl.echoas.workers.dev/api/get-info?url={url}"
-            response = requests.get(api_url).json()
+            req = requests.get(api_url)
             
+            if req.status_code != 200:
+                return await status.edit("Bypass server is currently busy. Please try another link or wait.")
+
+            response = req.json()
             if "download_link" in response:
                 await client.send_video(
                     chat_id=message.chat.id,
@@ -30,9 +34,9 @@ async def download_handler(client, message):
                 )
                 await status.delete()
             else:
-                await status.edit("Failed to get the download link. The link might be expired.")
+                await status.edit("Could not extract the download link. Try after some time.")
         except Exception as e:
-            await status.edit(f"Error: {str(e)}")
+            await status.edit(f"API Error: Please check back later.")
     else:
         await message.reply_text("Please send a valid Terabox link.")
 
